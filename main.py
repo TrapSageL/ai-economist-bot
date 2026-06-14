@@ -44,7 +44,7 @@ async def cmd_start(message: Message):
     await message.answer(welcome_text, parse_mode="HTML", reply_markup=keyboard)
 
 # ==========================================
-# АНАЛИЗ БИЗНЕС-ИДЕИ ЧЕРЕЗ GEMINI (СЛЕНГ + АНАЛИТИКА)
+# АНАЛИЗ БИЗНЕС-ИДЕИ ЧЕРЕЗ GEMINI (С ФИЛЬТРОМ ОШИБОК)
 # ==========================================
 @dp.message(F.text)
 async def analyze_business_idea(message: Message):
@@ -56,7 +56,9 @@ async def analyze_business_idea(message: Message):
         "используешь современный сленг (краш-тест, жир, вайб, скам, темка, профит, апрув, база), но при этом "
         "реально круто разбираешься в юнит-экономике, MVP, LTV и CAC.\n\n"
         "Твоя задача — провести честный, весёлый, но экономически грамотный краш-тест бизнес-идеи пользователя.\n"
-        "Оформляй ответ строго с помощью HTML-тегов. Никаких звездочек! Используй <b>заголовок</b> для акцентов.\n\n"
+        "СТРОГОЕ ПРАВИЛО ФОРМАТИРОВАНИЯ: Оформляй ответ СТРОГО с помощью HTML-тегов, которые поддерживает Telegram:\n"
+        "Разрешено использовать ТОЛЬКО <b>для жирного текста</b> и <i>для курсива</i>.\n"
+        "НЕ ИСПОЛЬЗУЙ звездочки (*), теги <p>, </p>, <div>, <br>, <ul>, <li>. Вообще никогда их не пиши!\n\n"
         "Ответь строго по следующим блокам, разделяя их тонкими линиями:\n\n"
         "💸 <b>В ЧЕМ ТЕМКА И ГДЕ ПРОФИТ?</b>\n"
         "<i>Разбор монетизации. Как рубить кэш и масштабировать этот вайб.</i>\n\n"
@@ -77,7 +79,11 @@ async def analyze_business_idea(message: Message):
             model='gemini-2.5-flash',
             contents=f"{system_prompt}\n\nИдея пользователя: {message.text}"
         )
-        await message.answer(response.text, parse_mode="HTML")
+        
+        # Защита: удаляем теги <p>, если нейросеть их всё же добавит, чтобы Telegram не ругался
+        clean_text = response.text.replace("<p>", "").replace("</p>", "\n")
+        
+        await message.answer(clean_text, parse_mode="HTML")
         try:
             await status_message.delete()
         except:
